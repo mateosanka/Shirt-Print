@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Stage, Layer, Transformer, Rect, Text, Group } from 'react-konva';
 import Konva from 'konva';
@@ -34,6 +35,7 @@ interface DesignCanvasProps {
     selectedTextId?: string | null;
     containerWidth: number;
     onTextUpdate?: (id: string, updates: Partial<{ text: string; fontSize: number; color: string; x: number; y: number; rotation: number }>) => void;
+    onTextDoubleClick?: (id: string) => void;
 }
 
 // Add ref type
@@ -42,6 +44,11 @@ export interface DesignCanvasRef {
     getImageDimensions: () => { width: number; height: number; scaleX: number; scaleY: number } | null;
     getPosition: () => { x: number; y: number } | null;
     getContainerWidth: () => number;
+}
+
+// Add this interface to extend Konva.Text with our custom property
+interface TextWithTapTime extends Konva.Text {
+    lastTapTime?: number;
 }
 
 // Update to use forwardRef
@@ -55,11 +62,12 @@ const DesignCanvas = forwardRef<DesignCanvasRef, DesignCanvasProps>(({
     onTextSelect,
     selectedTextId,
     onTextUpdate,
-    containerWidth
+    containerWidth,
+    onTextDoubleClick
 }, ref) => {
     const stageRef = useRef<Konva.Stage>(null);
     const imageRefs = useRef<{ [key: string]: Konva.Image | null }>({});
-    const textRefs = useRef<{ [key: string]: Konva.Text | null }>({});
+    const textRefs = useRef<{ [key: string]: TextWithTapTime | null }>({});
     const transformerRef = useRef<Konva.Transformer>(null);
 
     // Update transformer when selection changes
@@ -222,12 +230,13 @@ const DesignCanvas = forwardRef<DesignCanvasRef, DesignCanvasProps>(({
                     listening={false}
                 />
 
-                {/* Text elements remain on top */}
+                {/* Text elements with double-click handler */}
                 {texts.map((el) => (
                     <Text
                         key={el.id}
                         ref={(node) => {
-                            textRefs.current[el.id] = node;
+                            // Cast the node to our extended type
+                            textRefs.current[el.id] = node as TextWithTapTime;
                         }}
                         text={el.text}
                         x={el.x || printableArea.left + printableArea.width / 2}
@@ -240,6 +249,24 @@ const DesignCanvas = forwardRef<DesignCanvasRef, DesignCanvasProps>(({
                         offsetY={el.fontSize / 2}
                         onClick={() => onTextSelect && onTextSelect(el.id)}
                         onTap={() => onTextSelect && onTextSelect(el.id)}
+                        onDblClick={() => onTextDoubleClick && onTextDoubleClick(el.id)}
+                        onDblTap={() => onTextDoubleClick && onTextDoubleClick(el.id)}
+                        onTouchEnd={(_) => { // Use underscore to indicate unused parameter
+                            const now = Date.now();
+                            const lastTap = textRefs.current[el.id]?.lastTapTime || 0;
+                            const tapLength = now - lastTap;
+
+                            if (tapLength < 500 && tapLength > 0) {
+                                if (onTextDoubleClick) {
+                                    onTextDoubleClick(el.id);
+                                }
+                            }
+
+                            // Don't use optional chaining on left side of assignment
+                            if (textRefs.current[el.id]) {
+                                textRefs.current[el.id]!.lastTapTime = now;
+                            }
+                        }}
                         onDragEnd={(e) => handleTextDragEnd(e, el.id)}
                         onTransformEnd={() => handleTextTransform(el.id)}
                     />
