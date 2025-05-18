@@ -1,17 +1,18 @@
 import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from "react";
-import { AlignHorizontalSpaceAround, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, AlignHorizontalJustifyStart, AlignHorizontalJustifyEnd, Trash2, Upload, X } from "lucide-react";
+import { AlignHorizontalSpaceAround, AlignVerticalJustifyEnd, AlignHorizontalJustifyStart, AlignHorizontalJustifyEnd, Trash2, Upload, X, AlignVerticalJustifyCenter, AlignVerticalJustifyStart } from "lucide-react";
 import { toast } from "react-toastify";
 
 interface RightProps {
     onImageUpload: (file: File) => void;
-    onTextAdd?: (text: string, fontSize: number, color: string) => void;
-    onTextUpdate?: (id: string, text: string, fontSize: number, color: string) => void;
+    onTextAdd?: (text: string, fontSize: number, color: string, font?: string) => void;
+    onTextUpdate?: (updates: Partial<{ text: string; fontSize: number; color: string; font: string }>) => void;
     selectedTextId?: string | null;
     selectedText?: {
         id: string;
         text: string;
         fontSize: number;
         color: string;
+        font?: string;
     } | null;
     onTextDelete?: (id: string) => void;
     onAlignmentChange?: (alignment: { horizontal?: 'left' | 'center' | 'right', vertical?: 'top' | 'middle' | 'bottom' }) => void;
@@ -29,6 +30,7 @@ interface RightProps {
     onImageDelete?: (id: string) => void;
     setSelectedTextId: (id: string | null) => void;
     textInputRef?: React.RefObject<HTMLInputElement>;
+    onTextAlignmentChange?: (alignment: { horizontal?: 'left' | 'center' | 'right', vertical?: 'top' | 'middle' | 'bottom' }) => void;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
@@ -47,7 +49,8 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
     onImageUpdate,
     onImageDelete,
     setSelectedTextId,
-    textInputRef
+    textInputRef,
+    onTextAlignmentChange
 }, ref) => {
     const [activeTab, setActiveTab] = useState('design');
     const [newText, setNewText] = useState('');
@@ -60,6 +63,9 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
     // Use the selected image's properties for the sliders
     const [imageSize, setImageSize] = useState(100);
     const [imageRotation, setImageRotation] = useState(0);
+
+    // Add a state for font selection
+    const [selectedFont, setSelectedFont] = useState('Arial');
 
     // Update local state when selected image changes
     useEffect(() => {
@@ -78,10 +84,12 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
             setNewText(selectedText.text);
             setFontSize(selectedText.fontSize);
             setTextColor(selectedText.color);
+            setSelectedFont(selectedText.font || 'Arial');
         } else {
             setNewText('');
             setFontSize(24);
             setTextColor('#000000');
+            setSelectedFont('Arial');
         }
     }, [selectedText]);
 
@@ -132,9 +140,9 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
         if (!newText.trim()) return;
 
         if (selectedTextId && onTextUpdate) {
-            onTextUpdate(selectedTextId, newText, fontSize, textColor);
+            onTextUpdate({ text: newText, fontSize, color: textColor, font: selectedFont });
         } else if (onTextAdd) {
-            onTextAdd(newText, fontSize, textColor);
+            onTextAdd(newText, fontSize, textColor, selectedFont);
         }
     };
 
@@ -143,6 +151,7 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
             setNewText(selectedText.text);
             setFontSize(selectedText.fontSize);
             setTextColor(selectedText.color);
+            setSelectedFont(selectedText.font || 'Arial');
             setSelectedTextId(null);
         }
     };
@@ -229,78 +238,56 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Alignment</label>
-                                        <div className="grid grid-cols-3 gap-2 text-gray-700">
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            Horizontal
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
                                             <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ horizontal: 'left', vertical: 'top' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Top Left"
-                                            >
-                                                <div className="transform rotate-45">
-                                                    <AlignHorizontalJustifyStart className="w-4 h-4" />
-                                                </div>
-                                            </button>
-                                            <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ vertical: 'top', horizontal: 'center' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Top Center"
-                                            >
-                                                <AlignVerticalJustifyStart className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ horizontal: 'right', vertical: 'top' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Top Right"
-                                            >
-                                                <div className="transform -rotate-45">
-                                                    <AlignHorizontalJustifyEnd className="w-4 h-4" />
-                                                </div>
-                                            </button>
-
-                                            <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ horizontal: 'left', vertical: 'middle' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Middle Left"
+                                                onClick={() => onAlignmentChange?.({ horizontal: 'left' })}
+                                                className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                                title="Align Left"
                                             >
                                                 <AlignHorizontalJustifyStart className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ horizontal: 'center', vertical: 'middle' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Center"
+                                                onClick={() => onAlignmentChange?.({ horizontal: 'center' })}
+                                                className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                                title="Align Center"
                                             >
                                                 <AlignHorizontalSpaceAround className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ horizontal: 'right', vertical: 'middle' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Middle Right"
+                                                onClick={() => onAlignmentChange?.({ horizontal: 'right' })}
+                                                className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                                title="Align Right"
                                             >
                                                 <AlignHorizontalJustifyEnd className="w-4 h-4" />
                                             </button>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                            Vertical
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2 mt-2">
                                             <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ horizontal: 'left', vertical: 'bottom' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Bottom Left"
+                                                onClick={() => onAlignmentChange?.({ vertical: 'top' })}
+                                                className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                                title="Align Top"
                                             >
-                                                <div className="transform -rotate-45">
-                                                    <AlignHorizontalJustifyStart className="w-4 h-4" />
-                                                </div>
+                                                <AlignVerticalJustifyStart className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ vertical: 'bottom', horizontal: 'center' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Bottom Center"
+                                                onClick={() => onAlignmentChange?.({ vertical: 'middle' })}
+                                                className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                                title="Align Middle"
+                                            >
+                                                <AlignVerticalJustifyCenter className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => onAlignmentChange?.({ vertical: 'bottom' })}
+                                                className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                                title="Align Bottom"
                                             >
                                                 <AlignVerticalJustifyEnd className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => onAlignmentChange && onAlignmentChange({ horizontal: 'right', vertical: 'bottom' })}
-                                                className="p-2 border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center"
-                                                title="Bottom Right"
-                                            >
-                                                <div className="transform rotate-45">
-                                                    <AlignHorizontalJustifyEnd className="w-4 h-4" />
-                                                </div>
                                             </button>
                                         </div>
                                     </div>
@@ -433,6 +420,49 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
                                     />
                                 </div>
 
+                                <div>
+                                    <label htmlFor="font-family" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Font
+                                    </label>
+                                    <select
+                                        id="font-family"
+                                        value={selectedFont}
+                                        onChange={(e) => {
+                                            setSelectedFont(e.target.value);
+                                            if (onTextUpdate) {
+                                                onTextUpdate({ font: e.target.value });
+                                            }
+                                        }}
+                                        className="w-full text-gray-700 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        <option value="Arial">Arial</option>
+                                        <option value="Verdana">Verdana</option>
+                                        <option value="Helvetica">Helvetica</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Courier New">Courier New</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Palatino">Palatino</option>
+                                        <option value="Garamond">Garamond</option>
+                                        <option value="Comic Sans MS">Comic Sans MS</option>
+                                        <option value="Impact">Impact</option>
+                                        <option value="Tahoma">Tahoma</option>
+                                        <option value="Trebuchet MS">Trebuchet MS</option>
+                                        <option value="Lucida Sans">Lucida Sans</option>
+                                        <option value="Lucida Console">Lucida Console</option>
+                                        <option value="Bookman">Bookman</option>
+                                        <option value="Avant Garde">Avant Garde</option>
+                                        <option value="Copperplate">Copperplate</option>
+                                        <option value="Brush Script MT">Brush Script MT</option>
+                                        <option value="Futura">Futura</option>
+                                        <option value="Century Gothic">Century Gothic</option>
+                                        <option value="Calibri">Calibri</option>
+                                        <option value="Cambria">Cambria</option>
+                                        <option value="Consolas">Consolas</option>
+                                        <option value="Franklin Gothic">Franklin Gothic</option>
+                                        <option value="Rockwell">Rockwell</option>
+                                    </select>
+                                </div>
+
                                 <div className="flex gap-2">
                                     <button
                                         type="submit"
@@ -461,6 +491,63 @@ const Right = forwardRef<{ setActiveTab: (tab: string) => void }, RightProps>(({
                                             </button>
                                         </>
                                     )}
+                                </div>
+
+                                {/* Text alignment controls */}
+                                <div className="mt-4">
+                                    <h3 className="text-sm font-medium text-gray-700 mb-2">Text Alignment</h3>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                        Horizontal
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <button
+                                            onClick={() => onTextAlignmentChange?.({ horizontal: 'left' })}
+                                            className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                            title="Align Left"
+                                        >
+                                            <AlignHorizontalJustifyStart className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => onTextAlignmentChange?.({ horizontal: 'center' })}
+                                            className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                            title="Align Center"
+                                        >
+                                            <AlignHorizontalSpaceAround className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => onTextAlignmentChange?.({ horizontal: 'right' })}
+                                            className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                            title="Align Right"
+                                        >
+                                            <AlignHorizontalJustifyEnd className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                        Vertical
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mt-2">
+                                        <button
+                                            onClick={() => onTextAlignmentChange?.({ vertical: 'top' })}
+                                            className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                            title="Align Top"
+                                        >
+                                            <AlignVerticalJustifyStart className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => onTextAlignmentChange?.({ vertical: 'middle' })}
+                                            className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                            title="Align Middle"
+                                        >
+                                            <AlignVerticalJustifyCenter className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => onTextAlignmentChange?.({ vertical: 'bottom' })}
+                                            className="p-2 border flex items-center justify-center text-gray-700 border-gray-200 rounded-md hover:bg-gray-50"
+                                            title="Align Bottom"
+                                        >
+                                            <AlignVerticalJustifyEnd className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </form>
